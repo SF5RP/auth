@@ -75,10 +75,20 @@ jobs:
         run: |
           echo "🚀 Deploying to production environment..."
 
+          # Ensure remote deploy directory exists
+          ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+              "mkdir -p /home/${{ secrets.SERVER_USER }}/auth-service"
+
           # Copy files with temporary names
           scp -o StrictHostKeyChecking=no -P ${{ env.SSH_PORT }} \
               backend/deploy_package/${{ env.BINARY_NAME }} \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/auth-service/${{ env.BINARY_NAME }}.tmp
+
+          # Upload systemd unit file (temporary name)
+          scp -o StrictHostKeyChecking=no -P ${{ env.SSH_PORT }} \
+              deploy/systemd/auth-service.service \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/auth-service/auth-service.service.tmp
               
           # Create .env file with proper values
           cat > /tmp/.env << 'ENV_EOF'
@@ -93,7 +103,7 @@ jobs:
           DISCORD_CLIENT_SECRET=${{ secrets.DISCORD_CLIENT_SECRET }}
           DISCORD_REDIRECT_URI=${{ secrets.DISCORD_REDIRECT_URI }}
 
-          SERVER_PORT=8080
+          SERVER_PORT=12410
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           FRONTEND_URL=${{ secrets.FRONTEND_URL || 'http://localhost:3000' }}
           ENVIRONMENT=production
@@ -128,7 +138,13 @@ jobs:
           sudo chmod 600 /opt/auth-service/.env
 
           echo "♻️ Reloading systemd units..."
+          # Install/refresh systemd unit
+          sudo mv -f /home/$USER/auth-service/auth-service.service.tmp /etc/systemd/system/auth-service.service
+          sudo chown root:root /etc/systemd/system/auth-service.service
+          sudo chmod 644 /etc/systemd/system/auth-service.service
+
           sudo systemctl daemon-reload
+          sudo systemctl enable auth-service.service || true
 
           echo "🚀 Starting auth-service..."
           sudo systemctl start auth-service.service
