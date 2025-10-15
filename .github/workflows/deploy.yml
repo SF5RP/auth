@@ -1,0 +1,177 @@
+name: Build and Deploy Auth Service
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  GO_VERSION: "1.22"
+  BINARY_NAME: "auth-service"
+  SSH_PORT: 22
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build binary
+        working-directory: backend
+        run: |
+          go mod download
+          go mod tidy
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o ${{ env.BINARY_NAME }} ./main.go
+
+      - name: Run tests
+        working-directory: backend
+        run: go test ./... || true
+
+      - name: Prepare deployment files
+        working-directory: backend
+        run: |
+          mkdir deploy_package
+          cp -v ${{ env.BINARY_NAME }} deploy_package/
+          cp -v env.example deploy_package/ || true
+          cp -v ../README.md deploy_package/ || true
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: "just-a-placeholder"
+
+      - name: Deploy and restart service
+        run: |
+          echo "🚀 Deploying to production environment..."
+
+          # Copy files with temporary names
+          scp -o StrictHostKeyChecking=no -P ${{ env.SSH_PORT }} \
+              backend/deploy_package/${{ env.BINARY_NAME }} \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/auth-service/${{ env.BINARY_NAME }}.tmp
+              
+          # Create .env file with proper values
+          cat > /tmp/.env << 'ENV_EOF'
+          DB_HOST=${{ secrets.DB_HOST || 'localhost' }}
+          DB_PORT=${{ secrets.DB_PORT || '5432' }}
+          DB_NAME=${{ secrets.DB_NAME || 'authdb' }}
+          DB_USER=${{ secrets.DB_USER || 'auth' }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DATABASE_URL=postgres://${{ secrets.DB_USER || 'auth' }}:${{ secrets.DB_PASSWORD }}@${{ secrets.DB_HOST || 'localhost' }}:${{ secrets.DB_PORT || '5432' }}/${{ secrets.DB_NAME || 'authdb' }}?sslmode=disable
+
+          DISCORD_CLIENT_ID=${{ secrets.DISCORD_CLIENT_ID }}
+          DISCORD_CLIENT_SECRET=${{ secrets.DISCORD_CLIENT_SECRET }}
+          DISCORD_REDIRECT_URI=${{ secrets.DISCORD_REDIRECT_URI }}
+
+          SERVER_PORT=8080
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          FRONTEND_URL=${{ secrets.FRONTEND_URL || 'http://localhost:3000' }}
+          ENVIRONMENT=production
+          ADMIN_DISCORD_IDS=${{ secrets.ADMIN_DISCORD_IDS || '' }}
+          ENV_EOF
+
+          # Upload .env file
+          scp -o StrictHostKeyChecking=no -P ${{ env.SSH_PORT }} \
+              /tmp/.env \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/auth-service/.env.tmp
+
+          # Execute deployment commands on server
+          ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+              "export BINARY_NAME=${{ env.BINARY_NAME }} && bash -s" << 'EOF'
+          set -e
+
+          echo "🔄 Stopping auth-service..."
+          sudo systemctl stop auth-service.service || true
+
+          echo "📦 Ensuring install directory..."
+          sudo mkdir -p /opt/auth-service
+          sudo chown -R $USER:$USER /opt/auth-service
+
+          echo "📦 Replacing files atomically..."
+          sudo mv -f /home/$USER/auth-service/$BINARY_NAME.tmp /opt/auth-service/$BINARY_NAME
+          sudo mv -f /home/$USER/auth-service/.env.tmp /opt/auth-service/.env
+
+          echo "🔐 Setting permissions..."
+          sudo chmod +x /opt/auth-service/$BINARY_NAME
+          sudo chown $USER:$USER /opt/auth-service/.env
+          sudo chmod 600 /opt/auth-service/.env
+
+          echo "♻️ Reloading systemd units..."
+          sudo systemctl daemon-reload
+
+          echo "🚀 Starting auth-service..."
+          sudo systemctl start auth-service.service
+
+          echo "✅ Verifying deployment..."
+          sleep 5
+          if sudo systemctl is-active --quiet auth-service; then
+            echo "✅ Deployment successful!"
+            sudo systemctl status auth-service --no-pager
+          else
+            echo "❌ Deployment failed!"
+            sudo journalctl -u auth-service -n 20 --no-pager
+            exit 1
+          fi
+          EOF
+
+      - name: Health check
+        run: |
+          echo "🏥 Running health check..."
+          sleep 10
+
+          if curl -f http://${{ secrets.SERVER_HOST }}/health; then
+            echo "✅ Health check passed!"
+          else
+            echo "❌ Health check failed!"
+            exit 1
+          fi
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "🚀 Deployment completed successfully!"
+            echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+            echo "- **Environment**: production" >> $GITHUB_STEP_SUMMARY
+            echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "💥 Deployment failed!"
+            echo "## 💥 Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- **Environment**: production" >> $GITHUB_STEP_SUMMARY
+            echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi

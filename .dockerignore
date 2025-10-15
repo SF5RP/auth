@@ -1,0 +1,10 @@
+# Игнорируем файлы для Docker
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+auth-service
+*.log
+auth.db
+.env
