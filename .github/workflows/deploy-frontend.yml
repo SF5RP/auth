@@ -1,0 +1,126 @@
+name: Build and Deploy Frontend
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  build-and-deploy-frontend:
+    name: Build and Deploy Frontend
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_VERSION: "20.x"
+      FRONTEND_DIR: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: |
+          npm ci
+
+      - name: Build frontend
+        working-directory: ${{ env.FRONTEND_DIR }}
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+        run: |
+          npm run build
+
+      - name: Prepare deploy artifact
+        run: |
+          tar -czf frontend.tgz -C ${{ env.FRONTEND_DIR }} .
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: "just-a-placeholder"
+
+      - name: Upload artifact and deploy via SSH
+        env:
+          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
+          REMOTE_USER: ${{ secrets.SERVER_USER }}
+          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+          REMOTE_DIR: /home/${{ secrets.SERVER_USER }}/user-service/frontend
+        run: |
+          echo "🚀 Deploying frontend..."
+
+          ssh -o StrictHostKeyChecking=no -p ${SSH_PORT:-22} $REMOTE_USER@$REMOTE_HOST "mkdir -p $REMOTE_DIR && mkdir -p /home/$REMOTE_USER/user-service/logs"
+
+          scp -o StrictHostKeyChecking=no -P ${SSH_PORT:-22} frontend.tgz $REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/frontend.tgz
+
+          ssh -o StrictHostKeyChecking=no -p ${SSH_PORT:-22} $REMOTE_USER@$REMOTE_HOST "bash -s" << 'EOF'
+          set -e
+          APP_DIR="$HOME/user-service/frontend"
+
+          # Extract new build
+          cd "$APP_DIR"
+          tar -xzf frontend.tgz
+          rm -f frontend.tgz
+
+          # Ensure Node.js and pm2
+          if ! command -v node >/dev/null 2>&1; then
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+          fi
+          if ! command -v pm2 >/dev/null 2>&1; then
+            sudo npm i -g pm2
+          fi
+
+          # Install dependencies on server to rebuild native modules if any
+          npm ci --omit=dev || npm ci
+
+          # Build and start with PM2 (uses start-prod.js)
+          if [ -f ecosystem.config.js ]; then
+            pm2 start ecosystem.config.js || pm2 reload ecosystem.config.js
+          else
+            # Fallback: run Next directly
+            npm run build
+            pm2 start "npm -- start" --name auth-frontend
+          fi
+
+          pm2 save
+          EOF
+
+      - name: Health check
+        run: |
+          echo "🏥 Running health check..."
+          FRONTEND_URL=${{ secrets.FRONTEND_URL || format('http://{0}', secrets.SERVER_HOST) }}
+          # Try root and login pages
+          (curl -fsS "$FRONTEND_URL/" || curl -fsS "$FRONTEND_URL/login") && echo "✅ Frontend is up" || (echo "❌ Frontend health check failed" && exit 1)
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "## 🚀 Frontend Deployment Summary" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+            echo "- **URL**: ${{ secrets.FRONTEND_URL }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 💥 Frontend Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
