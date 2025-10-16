@@ -1,7 +1,7 @@
 [Unit]
 Description=User Service - Discord OAuth2 Authentication
-After=network.target postgresql.service
-Wants=postgresql.service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
