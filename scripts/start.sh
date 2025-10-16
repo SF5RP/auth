@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Скрипт для запуска auth-service
+# Скрипт для запуска user-service
 
-echo "🚀 Запуск Auth Service..."
+echo "🚀 Запуск User Service..."
 
 # Проверяем наличие config.env
 if [ ! -f "config.env" ]; then

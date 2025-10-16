@@ -4,11 +4,11 @@ import (
 	"log"
 	"os"
 
-	"auth-service/internal/config"
-	"auth-service/internal/database"
-	"auth-service/internal/handlers"
-	"auth-service/internal/middleware"
-	"auth-service/internal/services"
+	"user-service/internal/config"
+	"user-service/internal/database"
+	"user-service/internal/handlers"
+	"user-service/internal/middleware"
+	"user-service/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -26,32 +26,31 @@ func main() {
 	logger.SetLevel(logrus.InfoLevel)
 	logger.SetFormatter(&logrus.TextFormatter{})
 
-    // Подключаемся к БД
-    db, err := database.ConnectFromEnv()
-    if err != nil {
-        logger.Fatalf("Failed to connect database: %v", err)
-    }
-    defer db.Close()
+	// Подключаемся к БД
+	db, err := database.ConnectFromEnv()
+	if err != nil {
+		logger.Fatalf("Failed to connect database: %v", err)
+	}
+	defer db.Close()
 
-    // Репозитории
-    userRepo := database.NewUserRepo(db)
-    tokenRepo := database.NewTokenRepo(db)
-    characterRepo := database.NewCharacterRepo(db)
+	// Репозитории
+	userRepo := database.NewUserRepo(db)
+	tokenRepo := database.NewTokenRepo(db)
+	characterRepo := database.NewCharacterRepo(db)
 
-    // Создаем сервисы (с БД)
-    authService := services.NewAuthService(cfg, logger).WithRepositories(userRepo, tokenRepo)
-    characterService := services.NewCharacterService(characterRepo, logger)
-	
+	// Создаем сервисы (с БД)
+	authService := services.NewAuthService(cfg, logger).WithRepositories(userRepo, tokenRepo)
+	characterService := services.NewCharacterService(characterRepo, logger)
+
 	// Создаем обработчики
-    authHandler := handlers.NewAuthHandler(authService, logger, cfg)
-    userHandler := handlers.NewUserHandler(authService, logger)
-    characterHandler := handlers.NewCharacterHandler(characterService, logger)
+	authHandler := handlers.NewAuthHandler(authService, logger, cfg)
+	userHandler := handlers.NewUserHandler(authService, logger)
+	characterHandler := handlers.NewCharacterHandler(characterService, logger)
 
 	// Настраиваем Gin
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
-
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -70,7 +69,7 @@ func main() {
 	protected.Use(middleware.AuthMiddleware(cfg.JWTSecret, logger))
 	{
 		protected.GET("/me", userHandler.GetMe)
-		
+
 		// Character routes
 		protected.POST("/characters", characterHandler.CreateCharacter)
 		protected.GET("/characters", characterHandler.GetUserCharacters)
@@ -93,9 +92,10 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-
 	logger.Infof("Starting server on port %s", port)
 	if err := router.Run(":" + port); err != nil {
 		logger.Fatal("Failed to start server:", err)
 	}
 }
+
+

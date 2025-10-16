@@ -17,7 +17,7 @@ interface ServerContextType {
 
 const ServerContext = createContext<ServerContextType | undefined>(undefined);
 
-const SELECTED_SERVER_KEY = "auth-service-selected-server";
+const SELECTED_SERVER_KEY = "user-service-selected-server";
 
 interface ServerProviderProps {
   children: ReactNode;

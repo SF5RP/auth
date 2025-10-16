@@ -294,7 +294,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       <SidebarContainer className={isOpen ? "open" : ""}>
         <SidebarScroll>
           <Logo>
-            <LogoText>Auth Service</LogoText>
+            <LogoText>User Service</LogoText>
           </Logo>
 
           {currentServer && isAuthenticated && (

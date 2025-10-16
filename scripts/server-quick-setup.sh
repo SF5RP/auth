@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Quick Server Setup Script for Auth Service
+# Quick Server Setup Script for User Service
 # This script sets up a fresh Ubuntu/Debian server for deployment
 # Usage: sudo bash server-quick-setup.sh
 
@@ -39,13 +39,13 @@ fi
 
 # Configuration
 DEPLOY_USER="deploy"
-SERVICE_NAME="auth-service"
-INSTALL_DIR="/opt/auth-service"
+SERVICE_NAME="user-service"
+INSTALL_DIR="/opt/user-service"
 DB_NAME="authdb"
 DB_USER="auth"
 DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -base64 32)}"
 
-log_section "🚀 Starting Auth Service Server Setup"
+log_section "🚀 Starting User Service Server Setup"
 
 # ============================================
 # 1. System Update
@@ -193,10 +193,10 @@ log_info "Fail2Ban started"
 # ============================================
 log_section "📁 Creating Application Directories"
 mkdir -p $INSTALL_DIR
-mkdir -p /home/$DEPLOY_USER/auth-service
-mkdir -p /home/$DEPLOY_USER/auth-service/logs
+mkdir -p /home/$DEPLOY_USER/user-service
+mkdir -p /home/$DEPLOY_USER/user-service/logs
 chown -R $DEPLOY_USER:$DEPLOY_USER $INSTALL_DIR
-chown -R $DEPLOY_USER:$DEPLOY_USER /home/$DEPLOY_USER/auth-service
+chown -R $DEPLOY_USER:$DEPLOY_USER /home/$DEPLOY_USER/user-service
 log_info "Application directories created"
 
 # ============================================
@@ -250,10 +250,10 @@ echo "1. Add SSH key for deploy user:"
 echo "   sudo nano /home/$DEPLOY_USER/.ssh/authorized_keys"
 echo
 echo "2. Copy systemd service file:"
-echo "   sudo cp deploy/systemd/auth-service.service /etc/systemd/system/"
+echo "   sudo cp deploy/systemd/user-service.service /etc/systemd/system/"
 echo
 echo "3. Copy nginx configuration:"
-echo "   sudo cp deploy/nginx/auth-service.conf /etc/nginx/sites-available/$SERVICE_NAME"
+echo "   sudo cp deploy/nginx/user-service.conf /etc/nginx/sites-available/$SERVICE_NAME"
 echo "   sudo ln -s /etc/nginx/sites-available/$SERVICE_NAME /etc/nginx/sites-enabled/"
 echo "   sudo rm /etc/nginx/sites-enabled/default  # Remove default site"
 echo "   sudo nginx -t"

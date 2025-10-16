@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"auth-service/internal/services"
 	"net/http"
 	"strconv"
+
+	"user-service/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"

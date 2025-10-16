@@ -1,6 +1,6 @@
-# Скрипт для тестирования Auth Service API (PowerShell)
+# Скрипт для тестирования User Service API (PowerShell)
 
-Write-Host "🧪 Тестирование Auth Service API" -ForegroundColor Green
+Write-Host "🧪 Тестирование User Service API" -ForegroundColor Green
 Write-Host "================================" -ForegroundColor Green
 
 $BASE_URL = "http://localhost:8080"

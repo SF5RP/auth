@@ -1,4 +1,4 @@
-name: Build and Deploy Auth Service
+name: Build and Deploy User Service
 
 on:
   push:
@@ -19,7 +19,7 @@ on:
 
 env:
   GO_VERSION: "1.22"
-  BINARY_NAME: "auth-service"
+  BINARY_NAME: "user-service"
   SSH_PORT: 22
 
 jobs:
@@ -78,17 +78,17 @@ jobs:
           # Ensure remote deploy directory exists
           ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-              "mkdir -p /home/${{ secrets.SERVER_USER }}/auth-service"
+              "mkdir -p /home/${{ secrets.SERVER_USER }}/user-service"
 
           # Copy files with temporary names
           scp -o StrictHostKeyChecking=no -P ${{ env.SSH_PORT }} \
               backend/deploy_package/${{ env.BINARY_NAME }} \
-              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/auth-service/${{ env.BINARY_NAME }}.tmp
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/user-service/${{ env.BINARY_NAME }}.tmp
 
           # Upload systemd unit file (temporary name)
           scp -o StrictHostKeyChecking=no -P ${{ env.SSH_PORT }} \
-              deploy/systemd/auth-service.service \
-              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/auth-service/auth-service.service.tmp
+              deploy/systemd/user-service.service \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/user-service/user-service.service.tmp
               
           # Create .env file with proper values
           cat > /tmp/.env << 'ENV_EOF'
@@ -113,7 +113,7 @@ jobs:
           # Upload .env file
           scp -o StrictHostKeyChecking=no -P ${{ env.SSH_PORT }} \
               /tmp/.env \
-              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/auth-service/.env.tmp
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/user-service/.env.tmp
 
           # Execute deployment commands on server
           ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} \
@@ -121,42 +121,42 @@ jobs:
               "export BINARY_NAME=${{ env.BINARY_NAME }} && bash -s" << 'EOF'
           set -e
 
-          echo "🔄 Stopping auth-service..."
-          sudo systemctl stop auth-service.service || true
+          echo "🔄 Stopping user-service..."
+          sudo systemctl stop user-service.service || true
 
           echo "📦 Ensuring install directory..."
-          sudo mkdir -p /opt/auth-service
-          sudo chown -R $USER:$USER /opt/auth-service
+          sudo mkdir -p /opt/user-service
+          sudo chown -R $USER:$USER /opt/user-service
 
           echo "📦 Replacing files atomically..."
-          sudo mv -f /home/$USER/auth-service/$BINARY_NAME.tmp /opt/auth-service/$BINARY_NAME
-          sudo mv -f /home/$USER/auth-service/.env.tmp /opt/auth-service/.env
+          sudo mv -f /home/$USER/user-service/$BINARY_NAME.tmp /opt/user-service/$BINARY_NAME
+          sudo mv -f /home/$USER/user-service/.env.tmp /opt/user-service/.env
 
           echo "🔐 Setting permissions..."
-          sudo chmod +x /opt/auth-service/$BINARY_NAME
-          sudo chown $USER:$USER /opt/auth-service/.env
-          sudo chmod 600 /opt/auth-service/.env
+          sudo chmod +x /opt/user-service/$BINARY_NAME
+          sudo chown $USER:$USER /opt/user-service/.env
+          sudo chmod 600 /opt/user-service/.env
 
           echo "♻️ Reloading systemd units..."
           # Install/refresh systemd unit
-          sudo mv -f /home/$USER/auth-service/auth-service.service.tmp /etc/systemd/system/auth-service.service
-          sudo chown root:root /etc/systemd/system/auth-service.service
-          sudo chmod 644 /etc/systemd/system/auth-service.service
+          sudo mv -f /home/$USER/user-service/user-service.service.tmp /etc/systemd/system/user-service.service
+          sudo chown root:root /etc/systemd/system/user-service.service
+          sudo chmod 644 /etc/systemd/system/user-service.service
 
           sudo systemctl daemon-reload
-          sudo systemctl enable auth-service.service || true
+          sudo systemctl enable user-service.service || true
 
-          echo "🚀 Starting auth-service..."
-          sudo systemctl start auth-service.service
+          echo "🚀 Starting user-service..."
+          sudo systemctl start user-service.service
 
           echo "✅ Verifying deployment..."
           sleep 5
-          if sudo systemctl is-active --quiet auth-service; then
+          if sudo systemctl is-active --quiet user-service; then
             echo "✅ Deployment successful!"
-            sudo systemctl status auth-service --no-pager
+            sudo systemctl status user-service --no-pager
           else
             echo "❌ Deployment failed!"
-            sudo journalctl -u auth-service -n 20 --no-pager
+            sudo journalctl -u user-service -n 20 --no-pager
             exit 1
           fi
           EOF

@@ -1,0 +1,26 @@
+# Normalize line endings for text files
+* text=auto eol=lf
+
+# Keep images and binaries untouched
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.gif -text
+*.webp -text
+*.ico -text
+
+# Ensure shell and scripts use LF
+*.sh text eol=lf
+*.ps1 text eol=lf
+
+# Go, TS/JS, JSON, YAML, MD
+*.go text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+

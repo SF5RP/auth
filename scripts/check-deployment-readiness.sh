@@ -75,23 +75,23 @@ else
     check_fail "env.example missing"
 fi
 
-if [ -f "deploy/systemd/auth-service.service" ]; then
+if [ -f "deploy/systemd/user-service.service" ]; then
     check_pass "Systemd service file exists"
 else
-    check_fail "Systemd service file missing (deploy/systemd/auth-service.service)"
+    check_fail "Systemd service file missing (deploy/systemd/user-service.service)"
 fi
 
-if [ -f "deploy/nginx/auth-service.conf" ]; then
+if [ -f "deploy/nginx/user-service.conf" ]; then
     check_pass "Nginx configuration exists"
     
     # Check if domain is configured
-    if grep -q "yourdomain.com" "deploy/nginx/auth-service.conf"; then
+    if grep -q "yourdomain.com" "deploy/nginx/user-service.conf"; then
         check_warn "Nginx config still has placeholder domain (yourdomain.com)"
     else
         check_pass "Nginx domain configured"
     fi
 else
-    check_fail "Nginx configuration missing (deploy/nginx/auth-service.conf)"
+    check_fail "Nginx configuration missing (deploy/nginx/user-service.conf)"
 fi
 
 if [ -f "deploy/scripts/install.sh" ]; then

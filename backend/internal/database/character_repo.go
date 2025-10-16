@@ -1,17 +1,16 @@
 package database
 
 import (
-	"auth-service/internal/models"
 	"database/sql"
+
+	"user-service/internal/models"
 )
 
 type CharacterRepo struct {
 	db *DB
 }
 
-func NewCharacterRepo(db *DB) *CharacterRepo {
-	return &CharacterRepo{db: db}
-}
+func NewCharacterRepo(db *DB) *CharacterRepo { return &CharacterRepo{db: db} }
 
 func (r *CharacterRepo) Create(character *models.Character) error {
 	tx, err := r.db.SQL.Begin()
@@ -40,7 +39,6 @@ func (r *CharacterRepo) Create(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.House != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_house (character_id, has_house, expires_at) VALUES ($1, $2, $3)`,
@@ -50,7 +48,6 @@ func (r *CharacterRepo) Create(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.Pet != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_pet (character_id, has_pet, expires_at) VALUES ($1, $2, $3)`,
@@ -60,7 +57,6 @@ func (r *CharacterRepo) Create(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.Laboratory != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_laboratory (character_id, has_laboratory, expires_at) VALUES ($1, $2, $3)`,
@@ -70,7 +66,6 @@ func (r *CharacterRepo) Create(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.MedicalCard != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_medical_card (character_id, has_medical_card, expires_at) VALUES ($1, $2, $3)`,
@@ -80,7 +75,6 @@ func (r *CharacterRepo) Create(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.VipStatus != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_vip_status (character_id, has_vip_status, expires_at) VALUES ($1, $2, $3)`,
@@ -137,12 +131,10 @@ func (r *CharacterRepo) FindByServerID(serverID int) ([]models.Character, error)
 		if err != nil {
 			return nil, err
 		}
-
 		// Load status data
 		if err := r.loadCharacterStatuses(&character); err != nil {
 			return nil, err
 		}
-
 		characters = append(characters, character)
 	}
 
@@ -170,12 +162,10 @@ func (r *CharacterRepo) FindByUserID(userID uint) ([]models.Character, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		// Load status data
 		if err := r.loadCharacterStatuses(&character); err != nil {
 			return nil, err
 		}
-
 		characters = append(characters, character)
 	}
 
@@ -211,7 +201,6 @@ func (r *CharacterRepo) Update(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.House != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_house (character_id, has_house, expires_at) VALUES ($1, $2, $3)
@@ -222,7 +211,6 @@ func (r *CharacterRepo) Update(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.Pet != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_pet (character_id, has_pet, expires_at) VALUES ($1, $2, $3)
@@ -233,7 +221,6 @@ func (r *CharacterRepo) Update(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.Laboratory != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_laboratory (character_id, has_laboratory, expires_at) VALUES ($1, $2, $3)
@@ -244,7 +231,6 @@ func (r *CharacterRepo) Update(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.MedicalCard != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_medical_card (character_id, has_medical_card, expires_at) VALUES ($1, $2, $3)
@@ -255,7 +241,6 @@ func (r *CharacterRepo) Update(character *models.Character) error {
 			return err
 		}
 	}
-
 	if character.VipStatus != nil {
 		_, err = tx.Exec(
 			`INSERT INTO character_vip_status (character_id, has_vip_status, expires_at) VALUES ($1, $2, $3)
@@ -308,7 +293,7 @@ func (r *CharacterRepo) loadCharacterStatuses(character *models.Character) error
 	}
 	if err == nil {
 		character.House = &models.HouseStatus{
-			HasHouse: hasHouse,
+			HasHouse:  hasHouse,
 			ExpiresAt: &houseExpiresAt.Time,
 		}
 		if !houseExpiresAt.Valid {
@@ -328,7 +313,7 @@ func (r *CharacterRepo) loadCharacterStatuses(character *models.Character) error
 	}
 	if err == nil {
 		character.Pet = &models.PetStatus{
-			HasPet: hasPet,
+			HasPet:  hasPet,
 			ExpiresAt: &petExpiresAt.Time,
 		}
 		if !petExpiresAt.Valid {
@@ -349,7 +334,7 @@ func (r *CharacterRepo) loadCharacterStatuses(character *models.Character) error
 	if err == nil {
 		character.Laboratory = &models.LaboratoryStatus{
 			HasLaboratory: hasLaboratory,
-			ExpiresAt: &laboratoryExpiresAt.Time,
+			ExpiresAt:     &laboratoryExpiresAt.Time,
 		}
 		if !laboratoryExpiresAt.Valid {
 			character.Laboratory.ExpiresAt = nil
@@ -369,7 +354,7 @@ func (r *CharacterRepo) loadCharacterStatuses(character *models.Character) error
 	if err == nil {
 		character.MedicalCard = &models.MedicalCardStatus{
 			HasMedicalCard: hasMedicalCard,
-			ExpiresAt: &medicalCardExpiresAt.Time,
+			ExpiresAt:     &medicalCardExpiresAt.Time,
 		}
 		if !medicalCardExpiresAt.Valid {
 			character.MedicalCard.ExpiresAt = nil
@@ -389,7 +374,7 @@ func (r *CharacterRepo) loadCharacterStatuses(character *models.Character) error
 	if err == nil {
 		character.VipStatus = &models.VipStatus{
 			HasVipStatus: hasVipStatus,
-			ExpiresAt: &vipStatusExpiresAt.Time,
+			ExpiresAt:   &vipStatusExpiresAt.Time,
 		}
 		if !vipStatusExpiresAt.Valid {
 			character.VipStatus.ExpiresAt = nil
@@ -398,3 +383,5 @@ func (r *CharacterRepo) loadCharacterStatuses(character *models.Character) error
 
 	return nil
 }
+
+

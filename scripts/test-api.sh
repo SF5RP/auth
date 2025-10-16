@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Скрипт для тестирования Auth Service API
+# Скрипт для тестирования User Service API
 
-echo "🧪 Тестирование Auth Service API"
+echo "🧪 Тестирование User Service API"
 echo "================================"
 
 BASE_URL="http://localhost:8080"

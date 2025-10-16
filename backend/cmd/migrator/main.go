@@ -11,28 +11,35 @@ import (
 )
 
 func main() {
-    databaseURL := os.Getenv("DATABASE_URL")
-    if databaseURL == "" {
-        log.Fatal("DATABASE_URL is required")
-    }
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL is required")
+	}
 
-    migrationsPath := os.Getenv("MIGRATIONS_PATH")
-    if migrationsPath == "" {
-        migrationsPath = "file://migrations"
-    } else {
-        migrationsPath = fmt.Sprintf("file://%s", migrationsPath)
-    }
+	migrationsPath := os.Getenv("MIGRATIONS_PATH")
+	if migrationsPath == "" {
+		migrationsPath = "file://migrations"
+	} else {
+		migrationsPath = fmt.Sprintf("file://%s", migrationsPath)
+	}
 
-    m, err := migrate.New(migrationsPath, databaseURL)
-    if err != nil {
-        log.Fatalf("failed to init migrator: %v", err)
-    }
+	m, err := migrate.New(migrationsPath, databaseURL)
+	if err != nil {
+		log.Fatalf("failed to init migrator: %v", err)
+	}
+	defer func() {
+		srcErr, dbErr := m.Close()
+		if srcErr != nil {
+			log.Printf("source close error: %v", srcErr)
+		}
+		if dbErr != nil {
+			log.Printf("database close error: %v", dbErr)
+		}
+	}()
 
-    if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-        log.Fatalf("migration failed: %v", err)
-    }
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("migration failed: %v", err)
+	}
 
-    log.Println("migrations applied successfully")
+	log.Println("migrations applied successfully")
 }
-
-

@@ -1,10 +1,11 @@
 package services
 
 import (
-	"auth-service/internal/database"
-	"auth-service/internal/models"
 	"fmt"
 	"time"
+
+	"user-service/internal/database"
+	"user-service/internal/models"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -109,35 +110,30 @@ func (s *CharacterService) CreateCharacter(req *CreateCharacterRequest, userID u
 			ExpiresAt:    req.Apartment.ExpiresAt,
 		}
 	}
-
 	if req.House != nil {
 		character.House = &models.HouseStatus{
 			HasHouse:  req.House.HasHouse,
 			ExpiresAt: req.House.ExpiresAt,
 		}
 	}
-
 	if req.Pet != nil {
 		character.Pet = &models.PetStatus{
 			HasPet:    req.Pet.HasPet,
 			ExpiresAt: req.Pet.ExpiresAt,
 		}
 	}
-
 	if req.Laboratory != nil {
 		character.Laboratory = &models.LaboratoryStatus{
 			HasLaboratory: req.Laboratory.HasLaboratory,
 			ExpiresAt:     req.Laboratory.ExpiresAt,
 		}
 	}
-
 	if req.MedicalCard != nil {
 		character.MedicalCard = &models.MedicalCardStatus{
 			HasMedicalCard: req.MedicalCard.HasMedicalCard,
 			ExpiresAt:      req.MedicalCard.ExpiresAt,
 		}
 	}
-
 	if req.VipStatus != nil {
 		character.VipStatus = &models.VipStatus{
 			HasVipStatus: req.VipStatus.HasVipStatus,
@@ -165,12 +161,10 @@ func (s *CharacterService) GetCharacterByID(id string, userID uint) (*models.Cha
 		s.logger.WithError(err).WithField("character_id", id).Error("Failed to get character")
 		return nil, fmt.Errorf("failed to get character: %w", err)
 	}
-
 	// Check if user owns this character
 	if character.UserID != userID {
 		return nil, fmt.Errorf("character not found")
 	}
-
 	return character, nil
 }
 
@@ -180,7 +174,6 @@ func (s *CharacterService) GetCharactersByServerID(serverID int, userID uint) ([
 		s.logger.WithError(err).WithField("server_id", serverID).Error("Failed to get characters by server ID")
 		return nil, fmt.Errorf("failed to get characters: %w", err)
 	}
-
 	// Filter by user ID
 	var userCharacters []models.Character
 	for _, character := range characters {
@@ -188,7 +181,6 @@ func (s *CharacterService) GetCharactersByServerID(serverID int, userID uint) ([
 			userCharacters = append(userCharacters, character)
 		}
 	}
-
 	return userCharacters, nil
 }
 
@@ -198,7 +190,6 @@ func (s *CharacterService) GetUserCharacters(userID uint) ([]models.Character, e
 		s.logger.WithError(err).WithField("user_id", userID).Error("Failed to get user characters")
 		return nil, fmt.Errorf("failed to get user characters: %w", err)
 	}
-
 	return characters, nil
 }
 
@@ -209,7 +200,6 @@ func (s *CharacterService) UpdateCharacter(id string, req *UpdateCharacterReques
 		s.logger.WithError(err).WithField("character_id", id).Error("Failed to get character for update")
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
-
 	// Check if user owns this character
 	if character.UserID != userID {
 		return nil, fmt.Errorf("character not found")
@@ -231,7 +221,6 @@ func (s *CharacterService) UpdateCharacter(id string, req *UpdateCharacterReques
 	if req.ServerID != nil {
 		character.ServerID = *req.ServerID
 	}
-
 	character.UpdatedAt = time.Now()
 
 	// Update status fields if provided
@@ -241,35 +230,30 @@ func (s *CharacterService) UpdateCharacter(id string, req *UpdateCharacterReques
 			ExpiresAt:    req.Apartment.ExpiresAt,
 		}
 	}
-
 	if req.House != nil {
 		character.House = &models.HouseStatus{
 			HasHouse:  req.House.HasHouse,
 			ExpiresAt: req.House.ExpiresAt,
 		}
 	}
-
 	if req.Pet != nil {
 		character.Pet = &models.PetStatus{
 			HasPet:    req.Pet.HasPet,
 			ExpiresAt: req.Pet.ExpiresAt,
 		}
 	}
-
 	if req.Laboratory != nil {
 		character.Laboratory = &models.LaboratoryStatus{
 			HasLaboratory: req.Laboratory.HasLaboratory,
 			ExpiresAt:     req.Laboratory.ExpiresAt,
 		}
 	}
-
 	if req.MedicalCard != nil {
 		character.MedicalCard = &models.MedicalCardStatus{
 			HasMedicalCard: req.MedicalCard.HasMedicalCard,
 			ExpiresAt:      req.MedicalCard.ExpiresAt,
 		}
 	}
-
 	if req.VipStatus != nil {
 		character.VipStatus = &models.VipStatus{
 			HasVipStatus: req.VipStatus.HasVipStatus,
@@ -297,7 +281,6 @@ func (s *CharacterService) DeleteCharacter(id string, userID uint) error {
 		s.logger.WithError(err).WithField("character_id", id).Error("Failed to get character for deletion")
 		return fmt.Errorf("character not found: %w", err)
 	}
-
 	if character.UserID != userID {
 		return fmt.Errorf("character not found")
 	}

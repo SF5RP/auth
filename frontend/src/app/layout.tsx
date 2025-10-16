@@ -8,7 +8,7 @@ import { GlobalStyles } from "./globalStyles";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
-  title: "Auth Service",
+  title: "User Service",
   description: "Authentication service with Discord OAuth2",
 };
 

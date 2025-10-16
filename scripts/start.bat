@@ -1,5 +1,5 @@
 @echo off
-echo 🚀 Запуск Auth Service...
+echo 🚀 Запуск User Service...
 
 REM Проверяем наличие config.env
 if not exist "config.env" (
