@@ -34,13 +34,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+          cache: "yarn"
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/yarn.lock
+
+      - name: Enable Corepack
+        run: |
+          corepack enable
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
         run: |
-          npm ci
+          yarn install --immutable || yarn install
 
       - name: Build frontend
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -48,7 +52,7 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
         run: |
-          npm run build
+          yarn build
 
       - name: Prepare deploy artifact
         run: |
@@ -87,12 +91,20 @@ jobs:
             curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
             sudo apt-get install -y nodejs
           fi
+          # Enable Corepack for Yarn
+          if command -v corepack >/dev/null 2>&1; then
+            corepack enable || true
+          fi
           if ! command -v pm2 >/dev/null 2>&1; then
             sudo npm i -g pm2
           fi
 
-          # Install dependencies on server to rebuild native modules if any
-          npm ci --omit=dev || npm ci
+          # Install dependencies on server to rebuild native modules if any (Yarn first, fallback to npm)
+          if command -v yarn >/dev/null 2>&1; then
+            yarn install --immutable || yarn install
+          else
+            npm ci --omit=dev || npm ci
+          fi
 
           # Build and start with PM2 (uses start-prod.js)
           if [ -f ecosystem.config.js ]; then
