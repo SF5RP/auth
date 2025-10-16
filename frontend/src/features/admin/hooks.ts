@@ -21,8 +21,7 @@ export function useUpdateUserRole() {
     mutationFn: ({ userId, role }: UpdateRoleParams) =>
       api.post(`/admin/users/${userId}/role`, { role }, { requiresAuth: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
+      void queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 }
-

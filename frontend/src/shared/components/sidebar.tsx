@@ -149,15 +149,6 @@ const ServerSelector = styled.div`
   border-radius: 8px;
 `;
 
-const ServerSelectorTitle = styled.h3`
-  color: #6c757d;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 0 0 8px 0;
-`;
-
 const CurrentServer = styled.div`
   display: flex;
   align-items: center;
@@ -183,10 +174,7 @@ const ServerName = styled.div`
   text-overflow: ellipsis;
 `;
 
-const ServerId = styled.div`
-  color: #6c757d;
-  font-size: 12px;
-`;
+// Removed unused ServerId styled component to satisfy lints
 
 const ChangeServerButton = styled.button`
   width: 100%;
@@ -305,7 +293,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                   <ServerName>{currentServer.name}</ServerName>
                 </ServerInfo>
               </CurrentServer>
-              <ChangeServerButton onClick={() => router.push("/servers")}>
+              <ChangeServerButton onClick={() => void router.push("/servers")}>
                 Сменить сервер
               </ChangeServerButton>
             </ServerSelector>

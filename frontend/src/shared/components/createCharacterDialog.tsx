@@ -144,7 +144,8 @@ export function CreateCharacterDialog({
   isOpen,
   onClose,
   onSubmit,
-  serverId,
+  // serverId is not used directly in this dialog, consumed by parent handlers
+
   initialValues,
   title = "Создать нового персонажа",
   submitLabel = "Создать персонажа",
@@ -182,12 +183,15 @@ export function CreateCharacterDialog({
 
   if (!isOpen) return null;
 
+  // react-hook-form's handleSubmit returns a Promise-returning handler; wrap with void
+  const onSubmitForm = handleSubmit(handleFormSubmit);
+
   return (
     <Overlay isOpen={isOpen} onClick={handleClose}>
       <DialogCard onClick={(e) => e.stopPropagation()}>
         <CardTitle>{title}</CardTitle>
         <CardContent>
-          <Form onSubmit={handleSubmit(handleFormSubmit)}>
+          <Form onSubmit={(e) => void onSubmitForm(e)}>
             <FormGroup>
               <Label htmlFor="name">Имя персонажа</Label>
               <Input

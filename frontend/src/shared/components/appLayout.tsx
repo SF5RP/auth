@@ -37,7 +37,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { isOpen, toggleSidebar, closeSidebar } = useSidebar();
+  const { isOpen, toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
 

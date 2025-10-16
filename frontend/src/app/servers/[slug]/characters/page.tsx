@@ -10,8 +10,7 @@ import {
   useCreateCharacter,
   useUpdateCharacter,
 } from "@/features/characters/hooks";
-import { PageContainer, Container } from "@/shared/ui/container";
-import { Card, CardTitle, CardContent } from "@/shared/ui/card";
+import { Card, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { CreateCharacterDialog } from "@/shared/components/createCharacterDialog";
 import type { CreateCharacterFormData } from "@/shared/types/characterForm";

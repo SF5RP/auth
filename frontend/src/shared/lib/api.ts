@@ -1,5 +1,5 @@
 import Cookies from "js-cookie";
-import type { HeadersInit } from "undici";
+// Use the built-in fetch types from DOM lib; avoid undici types in the client bundle
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return (
@@ -15,17 +15,16 @@ function toCamelCase(str: string): string {
 
 function camelCaseKeys<T>(input: T): T {
   if (Array.isArray(input)) {
-    // @ts-expect-error runtime transform
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return input.map((item) => camelCaseKeys(item)) as unknown as T;
   }
   if (isPlainObject(input)) {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input)) {
       const newKey = toCamelCase(key);
-      // @ts-expect-error recursive transform
       result[newKey] = camelCaseKeys(value);
     }
-    return result as unknown as T;
+    return result as T;
   }
   return input;
 }
@@ -42,11 +41,12 @@ async function request<T>(
 ): Promise<T> {
   const { requiresAuth = false, headers, ...restOptions } = options;
 
-  const requestHeaders: HeadersInit = {
+  const requestHeadersBase: HeadersInit = {
     "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
     ...headers,
   };
+  const requestHeaders = requestHeadersBase as Record<string, string>;
 
   if (requiresAuth) {
     const token = Cookies.get("accessToken");
@@ -71,9 +71,9 @@ async function request<T>(
         window.location.href = "/login";
       }
     }
-    const errorPayload: unknown = await response
+    const errorPayload = (await response
       .json()
-      .catch(() => ({ message: response.statusText }));
+      .catch(() => ({ message: response.statusText }))) as unknown;
     const errorMessage =
       isPlainObject(errorPayload) && typeof errorPayload.message === "string"
         ? errorPayload.message
@@ -83,12 +83,12 @@ async function request<T>(
 
   // 204 No Content safety
   if (response.status === 204) {
-    // @ts-expect-error generic void
-    return undefined;
+    return undefined as unknown as T;
   }
 
-  const json: unknown = await response.json();
-  return camelCaseKeys(json as unknown as T);
+  const json = (await response.json()) as unknown;
+
+  return camelCaseKeys(json as T);
 }
 
 export const api = {
