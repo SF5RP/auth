@@ -1,1 +1,41 @@
-# Используем официальный образ GoFROM golang:1.24-alpine AS builder# Устанавливаем рабочую директориюWORKDIR /app# Копируем go.mod и go.sum из backendCOPY backend/go.mod backend/go.sum ./# Загружаем зависимостиRUN go mod download# Копируем backend исходный кодCOPY backend/ .# Собираем приложениеRUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./main.go# Собираем миграторRUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o migrator ./cmd/migrator# Используем минимальный образ для запускаFROM alpine:latest# Устанавливаем ca-certificates для HTTPS запросовRUN apk --no-cache add ca-certificatesWORKDIR /root/# Копируем собранное приложениеCOPY --from=builder /app/main .COPY --from=builder /app/migrator .# Копируем миграцииCOPY --from=builder /app/migrations ./migrations# Открываем портEXPOSE 8080# Запускаем приложениеCMD ["./main"]
+# Используем официальный образ Go
+FROM golang:1.24-alpine AS builder
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Копируем go.mod и go.sum из backend
+COPY backend/go.mod backend/go.sum ./
+
+# Загружаем зависимости
+RUN go mod download
+
+# Копируем backend исходный код
+COPY backend/ .
+
+# Собираем приложение
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./main.go
+
+# Собираем мигратор
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o migrator ./cmd/migrator
+
+# Используем минимальный образ для запуска
+FROM alpine:latest
+
+# Устанавливаем ca-certificates для HTTPS запросов
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+# Копируем собранное приложение
+COPY --from=builder /app/main .
+COPY --from=builder /app/migrator .
+
+# Копируем миграции
+COPY --from=builder /app/migrations ./migrations
+
+# Открываем порт
+EXPOSE 8080
+
+# Запускаем приложение
+CMD ["./main"]
