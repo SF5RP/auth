@@ -34,12 +34,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
-          cache-dependency-path: ${{ env.FRONTEND_DIR }}/yarn.lock
 
-      - name: Enable Corepack
+      - name: Enable Corepack and pin Yarn
         run: |
           corepack enable
+          corepack prepare yarn@4.10.3 --activate
 
       - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -94,6 +93,7 @@ jobs:
           # Enable Corepack for Yarn
           if command -v corepack >/dev/null 2>&1; then
             corepack enable || true
+            corepack prepare yarn@4.10.3 --activate || true
           fi
           if ! command -v pm2 >/dev/null 2>&1; then
             sudo npm i -g pm2
